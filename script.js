@@ -61,6 +61,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 sharedWidth = Math.min(baseWidth, 500);
                 sharedHeight = Math.min(baseHeight, 700);
 
+                // On prépare aussi l'état de l'éditeur de formes/texte, pour que
+                // les annotations éventuelles soient disponibles dès la génération du flipbook.
+                seImages = sharedImages;
+                seDims = sharedDims;
+                sePageEls = sharedImages.map(function () { return []; });
+                seCurPage = 0;
+
                 generateBtn.classList.remove('hidden');
                 shapesBtn.classList.remove('hidden');
 
@@ -87,26 +94,59 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var pageFlip = null;
 
-    generateBtn.addEventListener('click', function () {
+    // Construit la liste d'images finales pour le flipbook : les pages annotées
+    // (formes/texte ajoutés dans l'éditeur) sont fusionnées ("bakées"), les autres
+    // pages restent inchangées. Permet d'embarquer les annotations dans le flipbook.
+    async function buildFinalImages() {
+        var hasAnnotations = sePageEls.some(function (arr) { return arr && arr.length > 0; });
+        if (!hasAnnotations) return sharedImages;
+        if (document.fonts && document.fonts.ready) { await document.fonts.ready; }
+        var out = [];
+        for (var i = 0; i < sharedImages.length; i++) {
+            if (sePageEls[i] && sePageEls[i].length) {
+                var canvas = await bakePageCanvas(i);
+                out.push(canvas.toDataURL('image/png'));
+            } else {
+                out.push(sharedImages[i]);
+            }
+        }
+        return out;
+    }
+
+    generateBtn.addEventListener('click', async function () {
         if (!sharedImages.length) return;
+
+        var oldTxt = generateBtn.textContent;
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Génération...';
+
+        var finalImages = await buildFinalImages();
 
         if (pageFlip) {
             pageFlip.destroy();
             bookEl.innerHTML = '';
         }
 
-        pageFlip = createBook(bookEl, sharedImages, sharedWidth, sharedHeight, pageIndicator);
+        pageFlip = createBook(bookEl, finalImages, sharedWidth, sharedHeight, pageIndicator);
 
         flipbookContainer.classList.remove('hidden');
         navContainer.classList.remove('hidden');
+
+        generateBtn.disabled = false;
+        generateBtn.textContent = oldTxt;
     });
 
     prevBtn.addEventListener('click', function () { if (pageFlip) pageFlip.flipPrev(); });
     nextBtn.addEventListener('click', function () { if (pageFlip) pageFlip.flipNext(); });
 
-    downloadBtn.addEventListener('click', function () {
+    downloadBtn.addEventListener('click', async function () {
         if (!sharedImages.length) return;
-        exportFlipbook(sharedImages, sharedWidth, sharedHeight);
+        var oldHtml = downloadBtn.innerHTML;
+        downloadBtn.disabled = true;
+        var finalImages = await buildFinalImages();
+        downloadBtn.disabled = false;
+        downloadBtn.innerHTML = oldHtml;
+        exportFlipbook(finalImages, sharedWidth, sharedHeight);
     });
 
     function createBook(container, images, width, height, indicator) {
@@ -258,9 +298,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     shapesBtn.addEventListener('click', function () {
         if (!sharedImages.length) return;
-        seImages = sharedImages;
-        seDims = sharedDims;
-        sePageEls = seImages.map(function () { return []; });
+        // seImages/seDims/sePageEls sont déjà initialisés au chargement du PDF
+        // (pour permettre à "Générer le flipbook" d'inclure les annotations
+        // même si l'utilisateur n'a pas encore ouvert cet éditeur).
         seCurPage = 0;
         openShapeEditor();
     });
@@ -313,8 +353,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('resize', function () { renderSeLayer(); });
 
     /* --- Formes : construction du panneau --- */
-    function shapeSVG(k, color, size) {
-        return '<svg viewBox="0 0 100 100" width="' + size + '" height="' + size + '" style="display:block;pointer-events:none"><g fill="' + color + '">' + SHAPE_PATHS[k] + '</g></svg>';
+    function shapeSVG(k, color, size, bordered) {
+        var strokeAttr = bordered ? ' stroke="#ffffff" stroke-width="4" stroke-linejoin="round"' : '';
+        return '<svg viewBox="0 0 100 100" width="' + size + '" height="' + size + '" style="display:block;pointer-events:none;overflow:visible"><g fill="' + color + '"' + strokeAttr + '>' + SHAPE_PATHS[k] + '</g></svg>';
     }
 
     function buildShapePanel() {
@@ -358,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function () {
             id: 's' + (seIdCounter++), type: 'shape', shape: s.k, clr: seShColor,
             xFrac: ((wrap.offsetWidth - sizePx) / 2) / wrap.offsetWidth,
             yFrac: ((wrap.offsetHeight - sizePx) / 2) / wrap.offsetHeight,
-            sc: 1, rot: 0, sizeFrac: sizeFrac
+            sc: 1, rot: 0, sizeFrac: sizeFrac, border: false
         };
         sePageEls[seCurPage].push(el);
         mkDom(el);
@@ -447,8 +488,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (el.type === 'shape') {
             var sizePx = el.sizeFrac * wrap.offsetWidth;
-            div.innerHTML = shapeSVG(el.shape, el.clr, sizePx);
-            div.style.filter = 'drop-shadow(0 1px 2px rgba(0,0,0,.35))';
+            div.innerHTML = shapeSVG(el.shape, el.clr, sizePx, el.border);
+            div.style.filter = el.border ? 'drop-shadow(0 3px 6px rgba(0,0,0,.45))' : 'none';
         } else {
             var span = document.createElement('span');
             span.className = 'se-text-inner';
@@ -480,19 +521,43 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /* --- Sélection --- */
+    var seBorderToggle = document.getElementById('se-border-toggle');
+    var seBorderCb = document.getElementById('se-border-cb');
+
     function seSel(id) {
         seSelId = id;
         var doms = seLayer.querySelectorAll('.se-el');
         for (var i = 0; i < doms.length; i++) doms[i].classList.toggle('sel', doms[i].getAttribute('data-id') === id);
         seFbar.classList.add('show');
+        var el = seFindEl(id);
+        if (el && el.type === 'shape') {
+            seBorderCb.checked = !!el.border;
+            seBorderToggle.classList.add('show');
+        } else {
+            seBorderToggle.classList.remove('show');
+        }
     }
     function seDesel() {
         seSelId = null;
         var doms = seLayer.querySelectorAll('.se-el');
         for (var i = 0; i < doms.length; i++) doms[i].classList.remove('sel');
         seFbar.classList.remove('show');
+        seBorderToggle.classList.remove('show');
     }
     seLayer.addEventListener('click', function (e) { if (e.target === this) seDesel(); });
+
+    seBorderCb.addEventListener('change', function (e) {
+        var el = seFindEl(seSelId);
+        if (!el || el.type !== 'shape') return;
+        el.border = e.target.checked;
+        var dom = document.getElementById('sd-' + el.id);
+        if (dom) {
+            var wrap = sePageWrap;
+            var sizePx = el.sizeFrac * wrap.offsetWidth;
+            dom.innerHTML = shapeSVG(el.shape, el.clr, sizePx, el.border);
+            dom.style.filter = el.border ? 'drop-shadow(0 3px 6px rgba(0,0,0,.45))' : 'none';
+        }
+    });
 
     /* --- Glisser-déposer --- */
     function seStartDrag(e, id) {
@@ -591,9 +656,8 @@ document.addEventListener('DOMContentLoaded', function () {
     /* ============================================================
        EXPORT — fusionne formes + texte dans chaque page et génère un PDF
        ============================================================ */
-    function drawShapeOnCtx(ctx, k, color, size) {
+    function drawShapeOnCtx(ctx, k, color, size, bordered) {
         var s = size / 100;
-        ctx.fillStyle = color;
         ctx.beginPath();
         if (k === 'circle') {
             ctx.arc(0, 0, 46 * s, 0, Math.PI * 2);
@@ -605,7 +669,20 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             ctx.closePath();
         }
+        if (bordered) {
+            ctx.shadowColor = 'rgba(0,0,0,0.45)';
+            ctx.shadowBlur = 6 * s;
+            ctx.shadowOffsetY = 3 * s;
+        }
+        ctx.fillStyle = color;
         ctx.fill();
+        if (bordered) {
+            ctx.shadowColor = 'transparent';
+            ctx.lineWidth = 4 * s;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
     }
 
     function bakePageCanvas(idx) {
@@ -629,7 +706,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         ctx.translate(cx, cy);
                         ctx.rotate(el.rot * Math.PI / 180);
                         ctx.scale(el.sc, el.sc);
-                        drawShapeOnCtx(ctx, el.shape, el.clr, sizePx);
+                        drawShapeOnCtx(ctx, el.shape, el.clr, sizePx, el.border);
                     } else {
                         var fsPx = el.fsFrac * dims.w;
                         ctx.font = fsPx + 'px ' + el.font;
