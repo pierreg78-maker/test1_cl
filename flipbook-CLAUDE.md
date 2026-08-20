@@ -1,7 +1,7 @@
 # Projet Flipbook — résumé pour reprise de session
 
 ## Dépôt
-`pierreg78-maker/flipbook` — site live : pierreg78-maker.github.io/test1_cl/
+`pierreg78-maker/test1_cl` — site live : pierreg78-maker.github.io/test1_cl/
 Fichiers : `index.html`, `style.css`, `script.js` (vanilla JS, sans dépendances build).
 
 ## Objectif
