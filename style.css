@@ -283,6 +283,45 @@ body, html {
     transform: translateX(-50%) translateY(0);
 }
 
+#se-border-toggle {
+    position: fixed;
+    bottom: 293px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    padding: 7px 12px;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s;
+}
+
+#se-border-toggle.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+#se-border-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: #eee;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+#se-border-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: #e67e22;
+    cursor: pointer;
+}
+
 .se-fbb {
     width: 38px;
     height: 38px;
