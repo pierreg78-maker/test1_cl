@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
         shapesBtn.classList.add('hidden');
         document.getElementById('nav-container').classList.add('hidden');
         document.getElementById('flipbook-container').classList.add('hidden');
+        document.getElementById('preview-container').classList.add('hidden');
 
         var fileReader = new FileReader();
         fileReader.onload = async function () {
@@ -71,6 +72,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 generateBtn.classList.remove('hidden');
                 shapesBtn.classList.remove('hidden');
 
+                // Le PDF doit être visible immédiatement : on affiche un aperçu
+                // statique de la première page, avec navigation entre les pages.
+                previewCurPage = 0;
+                showPreviewPage(0);
+                document.getElementById('preview-container').classList.remove('hidden');
+
             } catch (error) {
                 console.error('Erreur lors du traitement du PDF :', error);
                 alert('Une erreur est survenue lors de la lecture du PDF.');
@@ -80,6 +87,23 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         fileReader.readAsArrayBuffer(file);
     });
+
+    /* ============================================================
+       APERÇU STATIQUE DU PDF (affiché dès le chargement)
+       ============================================================ */
+    var previewCurPage = 0;
+    var previewImg = document.getElementById('preview-img');
+    var previewIndicator = document.getElementById('preview-indicator');
+    var previewContainer = document.getElementById('preview-container');
+
+    function showPreviewPage(idx) {
+        if (idx < 0 || idx >= sharedImages.length) return;
+        previewCurPage = idx;
+        previewImg.src = sharedImages[idx];
+        previewIndicator.textContent = (idx + 1) + ' / ' + sharedImages.length;
+    }
+    document.getElementById('preview-prev').addEventListener('click', function () { showPreviewPage(previewCurPage - 1); });
+    document.getElementById('preview-next').addEventListener('click', function () { showPreviewPage(previewCurPage + 1); });
 
     /* ============================================================
        FONCTIONNALITÉ 1 — GÉNÉRER LE FLIPBOOK (inchangé dans le fond)
@@ -129,6 +153,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         pageFlip = createBook(bookEl, finalImages, sharedWidth, sharedHeight, pageIndicator);
 
+        previewContainer.classList.add('hidden');
         flipbookContainer.classList.remove('hidden');
         navContainer.classList.remove('hidden');
 
@@ -152,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function createBook(container, images, width, height, indicator) {
         var flip = new St.PageFlip(container, {
             width: width, height: height, size: 'stretch',
-            minWidth: 300, maxWidth: 1000, minHeight: 400, maxHeight: 1400,
+            minWidth: 300, maxWidth: 1600, minHeight: 400, maxHeight: 2000,
             showCover: true, drawShadow: true, flippingTime: 700,
             maxShadowOpacity: 0.5, mobileScrollSupport: false
         });
@@ -177,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var styleBlock = "\n" +
             "body, html { margin:0; padding:0; width:100%; height:100%; background:#f0f0f0;\n" +
             "    display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:sans-serif; }\n" +
-            "#flipbook-container { width:90vw; max-width:800px; height:85vh; max-height:850px;\n" +
+            "#flipbook-container { width:96vw; max-width:1400px; height:90vh; max-height:1500px;\n" +
             "    background:#fff; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; justify-content:center; align-items:center; }\n" +
             "#book { width:100%; height:100%; }\n" +
             "#nav-container { margin-top:20px; display:flex; align-items:center; gap:20px; }\n" +
@@ -191,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
             "const container = document.getElementById('book');\n" +
             "const flip = new St.PageFlip(container, {\n" +
             "    width: " + width + ", height: " + height + ", size: 'stretch',\n" +
-            "    minWidth: 300, maxWidth: 1000, minHeight: 400, maxHeight: 1400,\n" +
+            "    minWidth: 300, maxWidth: 1600, minHeight: 400, maxHeight: 2000,\n" +
             "    showCover: true, drawShadow: true, flippingTime: 700,\n" +
             "    maxShadowOpacity: 0.5, mobileScrollSupport: false\n" +
             "});\n" +
@@ -235,21 +260,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var SHAPES = [
         { n: 'Cercle', k: 'circle' }, { n: 'Carré', k: 'square' }, { n: 'Triangle', k: 'triangle' },
-        { n: 'Hexagone', k: 'hexagon' }, { n: 'Étoile', k: 'star' }, { n: 'Flèche', k: 'arrow' }
+        { n: 'Étoile', k: 'star' }, { n: 'Flèche', k: 'arrow' }
     ];
     var SHAPE_C = ['#ffffff', '#000000', '#9aa0a6', '#f2c230', '#e63950', '#2ecc71', '#2980b9', '#8e44ad'];
     var SHAPE_PATHS = {
         circle: '<circle cx="50" cy="50" r="46"/>',
         square: '<rect x="6" y="6" width="88" height="88" rx="8"/>',
         triangle: '<polygon points="50,6 96,90 4,90"/>',
-        hexagon: '<polygon points="27,6 73,6 96,50 73,94 27,94 4,50"/>',
         star: '<polygon points="50,4 61,37 96,37 68,58 79,92 50,71 21,92 32,58 4,37 39,37"/>',
         arrow: '<polygon points="4,66 4,42 60,42 60,20 96,54 60,88 60,66"/>'
     };
     var SHAPE_PTS = {
         square: [[6, 6], [94, 6], [94, 94], [6, 94]],
         triangle: [[50, 6], [96, 90], [4, 90]],
-        hexagon: [[27, 6], [73, 6], [96, 50], [73, 94], [27, 94], [4, 50]],
         star: [[50, 4], [61, 37], [96, 37], [68, 58], [79, 92], [50, 71], [21, 92], [32, 58], [4, 37], [39, 37]],
         arrow: [[4, 66], [4, 42], [60, 42], [60, 20], [96, 54], [60, 88], [60, 66]]
     };
@@ -281,6 +304,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var seDrag = null;
     var seIdCounter = 0;
     var seEditId = null;
+    var seImageObjCache = {};   // id -> objet Image déjà chargé, pour la fusion PDF/flipbook
 
     var shapeEditor = document.getElementById('shape-editor');
     var seBack = document.getElementById('se-back');
@@ -322,15 +346,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     seBack.addEventListener('click', closeShapeEditor);
 
-    /* --- Onglets Formes / Texte --- */
+    /* --- Onglets Formes / Texte / Image --- */
     var seTabs = document.querySelectorAll('.se-tab');
+    var seTabIds = ['sh', 'tx', 'im'];
     for (var ti = 0; ti < seTabs.length; ti++) {
         seTabs[ti].addEventListener('click', function () {
             for (var tj = 0; tj < seTabs.length; tj++) seTabs[tj].classList.remove('on');
             this.classList.add('on');
             var t = this.getAttribute('data-t');
-            document.getElementById('se-tc-sh').style.display = (t === 'sh') ? '' : 'none';
-            document.getElementById('se-tc-tx').style.display = (t === 'tx') ? '' : 'none';
+            for (var tk = 0; tk < seTabIds.length; tk++) {
+                var panel = document.getElementById('se-tc-' + seTabIds[tk]);
+                if (panel) panel.style.display = (t === seTabIds[tk]) ? '' : 'none';
+            }
         });
     }
 
@@ -353,9 +380,17 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('resize', function () { renderSeLayer(); });
 
     /* --- Formes : construction du panneau --- */
+    // Aperçu carré (boutons de la palette).
     function shapeSVG(k, color, size, bordered) {
         var strokeAttr = bordered ? ' stroke="#ffffff" stroke-width="4" stroke-linejoin="round"' : '';
         return '<svg viewBox="0 0 100 100" width="' + size + '" height="' + size + '" style="display:block;pointer-events:none;overflow:visible"><g fill="' + color + '"' + strokeAttr + '>' + SHAPE_PATHS[k] + '</g></svg>';
+    }
+    // Version qui remplit tout son conteneur (100%x100%) et s'étire librement,
+    // sans conserver les proportions — c'est elle qui permet de transformer un
+    // cercle en ovale, un carré en rectangle ou en fine bande, etc.
+    function shapeFillSVG(k, color, bordered) {
+        var strokeAttr = bordered ? ' stroke="#ffffff" stroke-width="4" stroke-linejoin="round" vector-effect="non-scaling-stroke"' : '';
+        return '<svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%" style="display:block;pointer-events:none;overflow:visible"><g fill="' + color + '"' + strokeAttr + '>' + SHAPE_PATHS[k] + '</g></svg>';
     }
 
     function buildShapePanel() {
@@ -399,7 +434,7 @@ document.addEventListener('DOMContentLoaded', function () {
             id: 's' + (seIdCounter++), type: 'shape', shape: s.k, clr: seShColor,
             xFrac: ((wrap.offsetWidth - sizePx) / 2) / wrap.offsetWidth,
             yFrac: ((wrap.offsetHeight - sizePx) / 2) / wrap.offsetHeight,
-            sc: 1, rot: 0, sizeFrac: sizeFrac, border: false
+            wFrac: sizeFrac, hFrac: sizeFrac, rot: 0, border: false
         };
         sePageEls[seCurPage].push(el);
         mkDom(el);
@@ -468,6 +503,43 @@ document.addEventListener('DOMContentLoaded', function () {
         seSel(el.id);
     }
 
+    /* --- Image : import et insertion --- */
+    document.getElementById('se-import-img-btn').addEventListener('click', function () {
+        document.getElementById('se-img-input').click();
+    });
+    document.getElementById('se-img-input').addEventListener('change', function (e) {
+        var file = e.target.files[0];
+        e.target.value = ''; // permet de réimporter le même fichier plus tard
+        if (!file || file.type.indexOf('image/') !== 0) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+            var imgObj = new Image();
+            imgObj.onload = function () {
+                addImage(reader.result, imgObj);
+            };
+            imgObj.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function addImage(dataUrl, imgObj) {
+        var wrap = sePageWrap;
+        var wFrac = 0.35;
+        var wPx = wFrac * wrap.offsetWidth;
+        var ratio = (imgObj.naturalHeight && imgObj.naturalWidth) ? (imgObj.naturalHeight / imgObj.naturalWidth) : 1;
+        var hPx = wPx * ratio;
+        var el = {
+            id: 's' + (seIdCounter++), type: 'image', src: dataUrl,
+            xFrac: ((wrap.offsetWidth - wPx) / 2) / wrap.offsetWidth,
+            yFrac: ((wrap.offsetHeight - hPx) / 2) / wrap.offsetHeight,
+            wFrac: wFrac, hFrac: hPx / wrap.offsetWidth, rot: 0
+        };
+        seImageObjCache[el.id] = imgObj;
+        sePageEls[seCurPage].push(el);
+        mkDom(el);
+        seSel(el.id);
+    }
+
     /* --- Rendu des éléments sur la page courante --- */
     function renderSeLayer() {
         seLayer.innerHTML = '';
@@ -484,13 +556,33 @@ document.addEventListener('DOMContentLoaded', function () {
         div.setAttribute('data-id', el.id);
         div.style.left = (el.xFrac * wrap.offsetWidth) + 'px';
         div.style.top = (el.yFrac * wrap.offsetHeight) + 'px';
-        div.style.transform = 'rotate(' + el.rot + 'deg) scale(' + el.sc + ')';
 
         if (el.type === 'shape') {
-            var sizePx = el.sizeFrac * wrap.offsetWidth;
-            div.innerHTML = shapeSVG(el.shape, el.clr, sizePx, el.border);
+            var wPx = el.wFrac * wrap.offsetWidth;
+            var hPx = el.hFrac * wrap.offsetWidth;
+            div.style.width = wPx + 'px';
+            div.style.height = hPx + 'px';
+            div.style.transform = 'rotate(' + el.rot + 'deg)';
+            div.innerHTML = shapeFillSVG(el.shape, el.clr, el.border);
             div.style.filter = el.border ? 'drop-shadow(0 3px 6px rgba(0,0,0,.45))' : 'none';
+            appendResizeHandles(div);
+        } else if (el.type === 'image') {
+            var iwPx = el.wFrac * wrap.offsetWidth;
+            var ihPx = el.hFrac * wrap.offsetWidth;
+            div.style.width = iwPx + 'px';
+            div.style.height = ihPx + 'px';
+            div.style.transform = 'rotate(' + el.rot + 'deg)';
+            var imgTag = document.createElement('img');
+            imgTag.src = el.src;
+            imgTag.draggable = false;
+            imgTag.style.width = '100%';
+            imgTag.style.height = '100%';
+            imgTag.style.display = 'block';
+            imgTag.style.pointerEvents = 'none';
+            div.appendChild(imgTag);
+            appendResizeHandles(div);
         } else {
+            div.style.transform = 'rotate(' + el.rot + 'deg) scale(' + el.sc + ')';
             var span = document.createElement('span');
             span.className = 'se-text-inner';
             span.style.color = el.clr;
@@ -514,6 +606,24 @@ document.addEventListener('DOMContentLoaded', function () {
         seLayer.appendChild(div);
     }
 
+    // Ajoute les 4 poignées de coin (haut-gauche, haut-droite, bas-gauche, bas-droite)
+    // qui permettent d'étirer la largeur et la hauteur indépendamment, comme dans un
+    // éditeur d'image classique (Paint). Le div est le fils direct qui pivote, les
+    // poignées pivotent donc naturellement avec la forme/l'image.
+    function appendResizeHandles(div) {
+        var corners = ['tl', 'tr', 'bl', 'br'];
+        for (var i = 0; i < corners.length; i++) {
+            var c = corners[i];
+            var hd = document.createElement('div');
+            hd.className = 'se-handle se-handle-' + c;
+            (function (corner) {
+                hd.addEventListener('mousedown', function (e) { seStartResize(e, div.getAttribute('data-id'), corner); });
+                hd.addEventListener('touchstart', function (e) { seStartResize(e, div.getAttribute('data-id'), corner); }, { passive: false });
+            })(c);
+            div.appendChild(hd);
+        }
+    }
+
     function seFindEl(id) {
         var arr = sePageEls[seCurPage];
         for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i];
@@ -523,6 +633,9 @@ document.addEventListener('DOMContentLoaded', function () {
     /* --- Sélection --- */
     var seBorderToggle = document.getElementById('se-border-toggle');
     var seBorderCb = document.getElementById('se-border-cb');
+
+    var seScaleUpBtn = document.getElementById('se-scale-up');
+    var seScaleDownBtn = document.getElementById('se-scale-down');
 
     function seSel(id) {
         seSelId = id;
@@ -535,6 +648,15 @@ document.addEventListener('DOMContentLoaded', function () {
             seBorderToggle.classList.add('show');
         } else {
             seBorderToggle.classList.remove('show');
+        }
+        // Le + / - (agrandissement uniforme) ne sert plus que pour le texte :
+        // les formes et les images se redimensionnent librement par les poignées de coin.
+        if (el && el.type === 'text') {
+            seScaleUpBtn.classList.remove('hidden');
+            seScaleDownBtn.classList.remove('hidden');
+        } else {
+            seScaleUpBtn.classList.add('hidden');
+            seScaleDownBtn.classList.add('hidden');
         }
     }
     function seDesel() {
@@ -552,10 +674,9 @@ document.addEventListener('DOMContentLoaded', function () {
         el.border = e.target.checked;
         var dom = document.getElementById('sd-' + el.id);
         if (dom) {
-            var wrap = sePageWrap;
-            var sizePx = el.sizeFrac * wrap.offsetWidth;
-            dom.innerHTML = shapeSVG(el.shape, el.clr, sizePx, el.border);
+            dom.innerHTML = shapeFillSVG(el.shape, el.clr, el.border);
             dom.style.filter = el.border ? 'drop-shadow(0 3px 6px rgba(0,0,0,.45))' : 'none';
+            appendResizeHandles(dom);
         }
     });
 
@@ -569,10 +690,61 @@ document.addEventListener('DOMContentLoaded', function () {
         else { cx = e.clientX; cy = e.clientY; }
         var wrap = sePageWrap;
         seDrag = {
-            id: id, sx: cx, sy: cy,
+            mode: 'move', id: id, sx: cx, sy: cy,
             ox: el.xFrac * wrap.offsetWidth, oy: el.yFrac * wrap.offsetHeight,
             moved: false
         };
+    }
+
+    // Démarre un redimensionnement libre depuis une poignée de coin.
+    function seStartResize(e, id, corner) {
+        e.preventDefault(); e.stopPropagation();
+        seSel(id);
+        var el = seFindEl(id); if (!el) return;
+        var cx, cy;
+        if (e.touches && e.touches.length) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+        else { cx = e.clientX; cy = e.clientY; }
+        var wrap = sePageWrap;
+        seDrag = {
+            mode: 'resize', id: id, corner: corner, sx: cx, sy: cy, moved: false,
+            ow: el.wFrac * wrap.offsetWidth, oh: el.hFrac * wrap.offsetWidth,
+            ox: el.xFrac * wrap.offsetWidth, oy: el.yFrac * wrap.offsetHeight,
+            rot: el.rot, refW: wrap.offsetWidth, refH: wrap.offsetHeight
+        };
+    }
+
+    // Applique le redimensionnement en tenant compte de la rotation actuelle de
+    // l'élément : le déplacement de la souris est reconverti dans le repère local
+    // (non tourné) de la forme avant d'agrandir/réduire largeur et hauteur.
+    function seApplyResize(el, dx, dy) {
+        var rad = seDrag.rot * Math.PI / 180;
+        var ldx = dx * Math.cos(rad) + dy * Math.sin(rad);
+        var ldy = -dx * Math.sin(rad) + dy * Math.cos(rad);
+        var MIN = 14;
+        var w = seDrag.ow, h = seDrag.oh, x = seDrag.ox, y = seDrag.oy;
+        var corner = seDrag.corner;
+        var newW = w, newH = h, newX = x, newY = y;
+
+        if (corner === 'br') { newW = w + ldx; newH = h + ldy; }
+        else if (corner === 'tl') { newW = w - ldx; newH = h - ldy; newX = x + ldx; newY = y + ldy; }
+        else if (corner === 'tr') { newW = w + ldx; newH = h - ldy; newY = y + ldy; }
+        else if (corner === 'bl') { newW = w - ldx; newH = h + ldy; newX = x + ldx; }
+
+        if (newW < MIN) { if (corner === 'tl' || corner === 'bl') newX = x + (w - MIN); newW = MIN; }
+        if (newH < MIN) { if (corner === 'tl' || corner === 'tr') newY = y + (h - MIN); newH = MIN; }
+
+        el.wFrac = newW / seDrag.refW;
+        el.hFrac = newH / seDrag.refW;
+        el.xFrac = newX / seDrag.refW;
+        el.yFrac = newY / seDrag.refH;
+
+        var dom = document.getElementById('sd-' + el.id);
+        if (dom) {
+            dom.style.left = newX + 'px';
+            dom.style.top = newY + 'px';
+            dom.style.width = newW + 'px';
+            dom.style.height = newH + 'px';
+        }
     }
     function seOnMove(e) {
         if (!seDrag) return;
@@ -583,6 +755,12 @@ document.addEventListener('DOMContentLoaded', function () {
         var dx = cx - seDrag.sx, dy = cy - seDrag.sy;
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) seDrag.moved = true;
         var el = seFindEl(seDrag.id); if (!el) return;
+
+        if (seDrag.mode === 'resize') {
+            seApplyResize(el, dx, dy);
+            return;
+        }
+
         var wrap = sePageWrap;
         var nx = Math.max(-40, Math.min(wrap.offsetWidth - 10, seDrag.ox + dx));
         var ny = Math.max(-40, Math.min(wrap.offsetHeight - 10, seDrag.oy + dy));
@@ -605,7 +783,9 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('se-delete').addEventListener('click', function () { seDeleteSelected(); });
 
     function seScale(f) {
-        var el = seFindEl(seSelId); if (!el) return;
+        // Ne s'applique plus qu'au texte : les formes/images se redimensionnent
+        // désormais librement via les poignées de coin (largeur/hauteur indépendantes).
+        var el = seFindEl(seSelId); if (!el || el.type !== 'text') return;
         el.sc = Math.max(0.3, Math.min(4, el.sc * f));
         var dom = document.getElementById('sd-' + el.id);
         if (dom) dom.style.transform = 'rotate(' + el.rot + 'deg) scale(' + el.sc + ')';
@@ -614,12 +794,13 @@ document.addEventListener('DOMContentLoaded', function () {
         var el = seFindEl(seSelId); if (!el) return;
         el.rot = (el.rot + d) % 360;
         var dom = document.getElementById('sd-' + el.id);
-        if (dom) dom.style.transform = 'rotate(' + el.rot + 'deg) scale(' + el.sc + ')';
+        if (dom) dom.style.transform = (el.type === 'text') ? ('rotate(' + el.rot + 'deg) scale(' + el.sc + ')') : ('rotate(' + el.rot + 'deg)');
     }
     function seDeleteSelected() {
         if (!seSelId) return;
         var dom = document.getElementById('sd-' + seSelId);
         if (dom) dom.remove();
+        delete seImageObjCache[seSelId];
         sePageEls[seCurPage] = sePageEls[seCurPage].filter(function (e) { return e.id !== seSelId; });
         seDesel();
     }
@@ -656,29 +837,30 @@ document.addEventListener('DOMContentLoaded', function () {
     /* ============================================================
        EXPORT — fusionne formes + texte dans chaque page et génère un PDF
        ============================================================ */
-    function drawShapeOnCtx(ctx, k, color, size, bordered) {
-        var s = size / 100;
+    function drawShapeOnCtx(ctx, k, color, wPx, hPx, bordered) {
+        var sx = wPx / 100, sy = hPx / 100;
+        var sMin = Math.min(sx, sy);
         ctx.beginPath();
         if (k === 'circle') {
-            ctx.arc(0, 0, 46 * s, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, 46 * sx, 46 * sy, 0, 0, Math.PI * 2);
         } else {
             var pts = SHAPE_PTS[k];
             for (var i = 0; i < pts.length; i++) {
-                var px = (pts[i][0] - 50) * s, py = (pts[i][1] - 50) * s;
+                var px = (pts[i][0] - 50) * sx, py = (pts[i][1] - 50) * sy;
                 if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
             }
             ctx.closePath();
         }
         if (bordered) {
             ctx.shadowColor = 'rgba(0,0,0,0.45)';
-            ctx.shadowBlur = 6 * s;
-            ctx.shadowOffsetY = 3 * s;
+            ctx.shadowBlur = 6 * sMin;
+            ctx.shadowOffsetY = 3 * sMin;
         }
         ctx.fillStyle = color;
         ctx.fill();
         if (bordered) {
             ctx.shadowColor = 'transparent';
-            ctx.lineWidth = 4 * s;
+            ctx.lineWidth = 4 * sMin;
             ctx.strokeStyle = '#ffffff';
             ctx.lineJoin = 'round';
             ctx.stroke();
@@ -700,13 +882,24 @@ document.addEventListener('DOMContentLoaded', function () {
                     var el = arr[i];
                     ctx.save();
                     if (el.type === 'shape') {
-                        var sizePx = el.sizeFrac * dims.w;
-                        var cx = el.xFrac * dims.w + sizePx / 2;
-                        var cy = el.yFrac * dims.h + sizePx / 2;
+                        var swPx = el.wFrac * dims.w;
+                        var shPx = el.hFrac * dims.w;
+                        var cx = el.xFrac * dims.w + swPx / 2;
+                        var cy = el.yFrac * dims.h + shPx / 2;
                         ctx.translate(cx, cy);
                         ctx.rotate(el.rot * Math.PI / 180);
-                        ctx.scale(el.sc, el.sc);
-                        drawShapeOnCtx(ctx, el.shape, el.clr, sizePx, el.border);
+                        drawShapeOnCtx(ctx, el.shape, el.clr, swPx, shPx, el.border);
+                    } else if (el.type === 'image') {
+                        var iwPx = el.wFrac * dims.w;
+                        var ihPx = el.hFrac * dims.w;
+                        var icx = el.xFrac * dims.w + iwPx / 2;
+                        var icy = el.yFrac * dims.h + ihPx / 2;
+                        var imgObj = seImageObjCache[el.id];
+                        if (imgObj) {
+                            ctx.translate(icx, icy);
+                            ctx.rotate(el.rot * Math.PI / 180);
+                            ctx.drawImage(imgObj, -iwPx / 2, -ihPx / 2, iwPx, ihPx);
+                        }
                     } else {
                         var fsPx = el.fsFrac * dims.w;
                         ctx.font = fsPx + 'px ' + el.font;
