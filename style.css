@@ -64,11 +64,41 @@ body, html {
     color: #555;
 }
 
+#preview-container {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+#preview-img {
+    display: block;
+    max-width: 92vw;
+    max-height: 60vh;
+    width: auto;
+    height: auto;
+    background: #fff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+}
+
+#preview-nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+#preview-indicator {
+    font-weight: bold;
+    min-width: 60px;
+    text-align: center;
+}
+
 #flipbook-container {
-    width: 90vw;
-    max-width: 800px;
-    height: 85vh;
-    max-height: 850px;
+    width: 96vw;
+    max-width: 1400px;
+    height: 90vh;
+    max-height: 1500px;
     background-color: white;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -259,6 +289,29 @@ body, html {
     line-height: 1.15;
 }
 
+.se-handle {
+    display: none;
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    margin: -13px;
+    background: #e67e22;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    touch-action: none;
+    z-index: 6;
+}
+
+.se-el.sel .se-handle {
+    display: block;
+}
+
+.se-handle-tl { left: 0; top: 0; cursor: nwse-resize; }
+.se-handle-tr { left: 100%; top: 0; cursor: nesw-resize; }
+.se-handle-bl { left: 0; top: 100%; cursor: nesw-resize; }
+.se-handle-br { left: 100%; top: 100%; cursor: nwse-resize; }
+
 #se-fbar {
     position: fixed;
     bottom: 235px;
@@ -431,7 +484,7 @@ body, html {
 
 .se-shg {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 6px;
 }
 
@@ -564,6 +617,13 @@ body, html {
 .se-szb.on {
     border-color: #e67e22;
     color: #e67e22;
+}
+
+.se-im-hint {
+    font-size: 12px;
+    color: #999;
+    line-height: 1.4;
+    margin-top: 10px;
 }
 
 /* Modal d'édition de texte */
