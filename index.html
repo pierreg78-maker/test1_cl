@@ -27,10 +27,19 @@
         <div id="upload-buttons">
             <label for="pdf-file-input" class="upload-btn">Choisir un PDF</label>
             <button id="generate-flipbook-btn" class="upload-btn generate-btn hidden">Générer le flipbook</button>
-            <button id="shapes-btn" class="shapes-btn hidden">Ajouter des formes / texte</button>
+            <button id="shapes-btn" class="shapes-btn hidden">Modifier le PDF</button>
         </div>
         <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;">
         <p id="loading-message" class="hidden">Chargement du PDF en cours...</p>
+
+        <div id="preview-container" class="hidden">
+            <img id="preview-img" src="" alt="Aperçu de la page">
+            <div id="preview-nav">
+                <button id="preview-prev" class="nav-btn" aria-label="Page précédente">&#10094;</button>
+                <span id="preview-indicator">- / -</span>
+                <button id="preview-next" class="nav-btn" aria-label="Page suivante">&#10095;</button>
+            </div>
+        </div>
     </div>
 
     <div id="flipbook-container" class="hidden">
@@ -81,12 +90,19 @@
             <nav class="se-tabs">
                 <button class="se-tab on" data-t="sh">Formes</button>
                 <button class="se-tab" data-t="tx">Texte</button>
+                <button class="se-tab" data-t="im">Image</button>
             </nav>
             <div class="se-tc" id="se-tc-sh">
                 <div class="se-st">Insérer une forme</div>
                 <div class="se-shg" id="se-shape-grid"></div>
                 <div class="se-st">Couleur</div>
                 <div class="se-cr" id="se-shape-color-row"></div>
+            </div>
+            <div class="se-tc" id="se-tc-im" style="display:none">
+                <div class="se-st">Importer une image</div>
+                <button class="se-add-tx-btn" id="se-import-img-btn">Choisir une image</button>
+                <input type="file" id="se-img-input" accept="image/*" style="display:none">
+                <p class="se-im-hint">Touchez l'image pour la déplacer. Tirez un coin pour la redimensionner (largeur et hauteur indépendamment), comme sur Paint.</p>
             </div>
             <div class="se-tc" id="se-tc-tx" style="display:none">
                 <input type="text" class="se-tx-input" id="se-tx-input" placeholder="Votre texte..." maxlength="120">
